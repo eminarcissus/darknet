@@ -8,6 +8,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/pyDarknet)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare")
 
+#thread
+FIND_PACKAGE(Threads)
+list(APPEND LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+
 # CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
@@ -18,6 +22,9 @@ if (CUDA_FOUND)
     list(APPEND CUDA_NVCC_FLAGS "-arch=sm_35;-std=c++11;-O2;-Xcompiler \"-fPIC\"")
     set(CUDA_PROPAGATE_HOST_FLAGS OFF)
     add_definitions(-DGPU)
+    cuda_include_directories(src)
+else()
+    list(APPEND LIBRARIES "m")
 endif()
 
 #BOOST
@@ -28,7 +35,6 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 include_directories(SYSTEM ${PYTHON_INCLUDE_DIR})
 
 include_directories(src)
-cuda_include_directories(src)
 set(SRC_DIR src)
 
 FILE(GLOB SRC_FILES ${SRC_DIR}/*.c)
