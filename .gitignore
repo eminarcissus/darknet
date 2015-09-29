@@ -13,6 +13,7 @@ convnet/
 decaf/
 submission/
 cfg/
+build/
 darknet
 
 # OS Generated #
@@ -21,3 +22,12 @@ ehthumbs.db
 Icon?
 Thumbs.db
 *.swp
+
+#compiled libraries
+*.so
+
+#python generated
+*.pyc
+
+#IDE
+.idea/
