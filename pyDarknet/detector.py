@@ -1,8 +1,18 @@
-from libpydarknet import DarknetObjectDetector, BBox
+from libpydarknet import DarknetObjectDetector
 
 from PIL import Image
 import numpy as np
 import time
+
+class DetBBox(object):
+
+    def __init__(self, bbox):
+        self.left = bbox.left
+        self.right = bbox.right
+        self.top = bbox.top
+        self.bottom = bbox.bottom
+        self.confidence = bbox.confidence
+        self.cls = bbox.cls
 
 class Darknet_ObjectDetector():
 
@@ -18,7 +28,9 @@ class Darknet_ObjectDetector():
 
         end = time.time()
 
-        return rst, end-start
+        ret_rst = [DetBBox(x) for x in rst]
+
+        return ret_rst, end-start
 
     @staticmethod
     def set_device(gpu_id):

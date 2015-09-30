@@ -1,5 +1,5 @@
 from detector import Darknet_ObjectDetector as ObjectDetector
-from detector import BBox
+from detector import DetBBox
 
 if __name__ == '__main__':
     from PIL import Image
