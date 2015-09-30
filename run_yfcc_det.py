@@ -54,7 +54,7 @@ for part in parts:
     
     part_name = part.split('/')[-1]+'.pc'
     out_name = os.path.join(out_path, part_name)
-    cPickle.dump(open(out_name,'wb'), rst_list, cPickle.HIGHEST_PROTOCOL)
+    cPickle.dump(rst_list, open(out_name,'wb'), cPickle.HIGHEST_PROTOCOL)
     print '{} finished'.format(part)
 
 
