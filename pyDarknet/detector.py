@@ -20,3 +20,6 @@ class Darknet_ObjectDetector():
 
         return rst, end-start
 
+    @staticmethod
+    def set_device(gpu_id):
+        DarknetObjectDetector.set_device(gpu_id)

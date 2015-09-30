@@ -9,6 +9,10 @@
 #include "box.h"
 #include "image.h"
 
+#ifdef GPU
+#include "cuda.h"
+#endif
+
 using namespace std;
 namespace bp = boost::python;
 
@@ -72,6 +76,18 @@ public:
                                   thresh, im.w, im.h);
     };
 
+    static void set_device(int dev_id){
+#ifdef GPU
+      cudaError_t err = cudaSetDevice(dev_id);
+      if (err != cudaSuccess){
+        cout<<"CUDA Error on setting device: "<<cudaGetErrorString(err)<<'\n';
+        PyErr_SetString(PyExc_Exception, "Not able to set device");
+      }
+#else
+      PyErr_SetString(PyExc_Exception, "Not compiled with CUDA");
+#endif
+    }
+
 private:
 
     bp::list parse_yolo_detection(float *box, int side,
@@ -94,7 +110,7 @@ private:
           if(scale * box[j+cls] > thresh){
             //valid detection over threshold
             float conf = scale * box[j+cls];
-            printf("%f %s\n", conf, voc_class_names[cls].c_str());
+//            printf("%f %s\n", conf, voc_class_names[cls].c_str());
 
             j += classes;
             float x = box[j+0];
@@ -128,7 +144,9 @@ private:
 BOOST_PYTHON_MODULE(libpydarknet)
 {
   bp::class_<DarknetObjectDetector>("DarknetObjectDetector", bp::init<bp::str, bp::str>())
-      .def("detect_object", &DarknetObjectDetector::detect_object);
+      .def("detect_object", &DarknetObjectDetector::detect_object)
+      .def("set_device", &DarknetObjectDetector::set_device)
+      .staticmethod("set_device");
 
   bp::class_<BBox>("BBox")
       .def_readonly("left", &BBox::left)
