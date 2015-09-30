@@ -8,6 +8,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/pyDarknet)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare")
 
+#thread
+FIND_PACKAGE(Threads)
+list(APPEND LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+
 # CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
@@ -18,6 +22,9 @@ if (CUDA_FOUND)
     list(APPEND CUDA_NVCC_FLAGS "-arch=sm_35;-std=c++11;-O2;-Xcompiler \"-fPIC\"")
     set(CUDA_PROPAGATE_HOST_FLAGS OFF)
     add_definitions(-DGPU)
+    cuda_include_directories(src)
+else()
+    list(APPEND LIBRARIES "m")
 endif()
 
 #BOOST
@@ -28,24 +35,30 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 include_directories(SYSTEM ${PYTHON_INCLUDE_DIR})
 
 include_directories(src)
-cuda_include_directories(src)
 set(SRC_DIR src)
 
 FILE(GLOB SRC_FILES ${SRC_DIR}/*.c)
 FILE(GLOB CU_SRC_FILES ${SRC_DIR}/*.cu)
-LIST(REMOVE_ITEM SRC_FILES "/media/ssd/darknet/src/server.c")
-LIST(REMOVE_ITEM SRC_FILES "/media/ssd/darknet/src/old.c")
-LIST(REMOVE_ITEM SRC_FILES "/media/ssd/darknet/src/cpu_gemm.c")
-LIST(REMOVE_ITEM SRC_FILES "/media/ssd/darknet/src/darknet.c")
+LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/server.c")
+LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/old.c")
+LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/cpu_gemm.c")
+LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/darknet.c")
 
 message(STATUS "SOURCE FILES: " ${SRC_FILES})
 message(STATUS "Boost Libs: " ${Boost_LIBRARIES})
 
+if (CUDA_FOUND)
 cuda_add_library(dnl SHARED ${SRC_FILES} ${CU_SRC_FILES})
 target_link_libraries(dnl ${LIBRARIES})
-
 cuda_add_executable(darknet ${SRC_DIR}/darknet.c)
 target_link_libraries(darknet ${LIBRARIES} dnl)
-
 cuda_add_library(pydarknet SHARED  ${SRC_DIR}/pydarknet.cpp)
 target_link_libraries(pydarknet ${LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dnl)
+else ()
+add_library(dnl SHARED ${SRC_FILES} ${CU_SRC_FILES})
+target_link_libraries(dnl ${LIBRARIES})
+add_executable(darknet ${SRC_DIR}/darknet.c)
+target_link_libraries(darknet ${LIBRARIES} dnl)
+add_library(pydarknet SHARED  ${SRC_DIR}/pydarknet.cpp)
+target_link_libraries(pydarknet ${LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dnl)
+endif()
