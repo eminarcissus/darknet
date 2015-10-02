@@ -33,14 +33,19 @@ for part in parts:
         im_data  = line.strip().split('\t')[-1]
         if im_data == 'N/A':
             continue
-        im = Image.open(StringIO(base64.b64decode(im_data)))
+        try:
+            im = Image.open(StringIO(base64.b64decode(im_data)))
+        except:
+            continue
         try:
             im.load()
         except IOError:
             pass
 
-        if im.mode == 'L':
-            im = im.convert('RGB')
+        if im.mode == 'L' or im.mode == '1' or im.mode == 'P':
+            new_arr = np.empty((im.size[1], im.size[0],3), dtype=np.uint8)
+            new_arr[:,:,:] = np.array(im)[:,:,np.newaxis]
+            im = Image.fromarray(new_arr)
 
         rst, rt = detector.detect_object(im)
 
