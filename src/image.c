@@ -1,5 +1,6 @@
 #include "image.h"
 #include "utils.h"
+#include "blas.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -28,6 +29,26 @@ float get_color(int c, int x, int max)
     return r;
 }
 
+void draw_label(image a, int r, int c, image label, const float *rgb)
+{
+    float ratio = (float) label.w / label.h;
+    int h = label.h;
+    int w = ratio * h;
+    image rl = resize_image(label, w, h);
+    if (r - h >= 0) r = r - h;
+
+    int i, j, k;
+    for(j = 0; j < h && j + r < a.h; ++j){
+        for(i = 0; i < w && i + c < a.w; ++i){
+            for(k = 0; k < label.c; ++k){
+                float val = get_pixel(rl, i, j, k);
+                set_pixel(a, i+c, j+r, k, rgb[k] * val);
+            }
+        }
+    }
+    free_image(rl);
+}
+
 void draw_box(image a, int x1, int y1, int x2, int y2, float r, float g, float b)
 {
     //normalize_image(a);
@@ -42,25 +63,25 @@ void draw_box(image a, int x1, int y1, int x2, int y2, float r, float g, float b
     if(y2 < 0) y2 = 0;
     if(y2 >= a.h) y2 = a.h-1;
 
-    for(i = x1; i < x2; ++i){
-        a.data[i + y1*a.w + 0*a.w*a.h] = b;
-        a.data[i + y2*a.w + 0*a.w*a.h] = b;
+    for(i = x1; i <= x2; ++i){
+        a.data[i + y1*a.w + 0*a.w*a.h] = r;
+        a.data[i + y2*a.w + 0*a.w*a.h] = r;
 
         a.data[i + y1*a.w + 1*a.w*a.h] = g;
         a.data[i + y2*a.w + 1*a.w*a.h] = g;
 
-        a.data[i + y1*a.w + 2*a.w*a.h] = r;
-        a.data[i + y2*a.w + 2*a.w*a.h] = r;
+        a.data[i + y1*a.w + 2*a.w*a.h] = b;
+        a.data[i + y2*a.w + 2*a.w*a.h] = b;
     }
-    for(i = y1; i < y2; ++i){
-        a.data[x1 + i*a.w + 0*a.w*a.h] = b;
-        a.data[x2 + i*a.w + 0*a.w*a.h] = b;
+    for(i = y1; i <= y2; ++i){
+        a.data[x1 + i*a.w + 0*a.w*a.h] = r;
+        a.data[x2 + i*a.w + 0*a.w*a.h] = r;
 
         a.data[x1 + i*a.w + 1*a.w*a.h] = g;
         a.data[x2 + i*a.w + 1*a.w*a.h] = g;
 
-        a.data[x1 + i*a.w + 2*a.w*a.h] = r;
-        a.data[x2 + i*a.w + 2*a.w*a.h] = r;
+        a.data[x1 + i*a.w + 2*a.w*a.h] = b;
+        a.data[x2 + i*a.w + 2*a.w*a.h] = b;
     }
 }
 
@@ -84,6 +105,43 @@ void draw_bbox(image a, box bbox, int w, float r, float g, float b)
         draw_box(a, left+i, top+i, right-i, bot-i, r, g, b);
     }
 }
+
+void draw_detections(image im, int num, float thresh, box *boxes, float **probs, char **names, image *labels, int classes)
+{
+    int i;
+
+    for(i = 0; i < num; ++i){
+        int class = max_index(probs[i], classes);
+        float prob = probs[i][class];
+        if(prob > thresh){
+            int width = pow(prob, 1./2.)*10+1;
+            printf("%s: %.2f\n", names[class], prob);
+            int offset = class*17 % classes;
+            float red = get_color(0,offset,classes);
+            float green = get_color(1,offset,classes);
+            float blue = get_color(2,offset,classes);
+            float rgb[3];
+            rgb[0] = red;
+            rgb[1] = green;
+            rgb[2] = blue;
+            box b = boxes[i];
+
+            int left  = (b.x-b.w/2.)*im.w;
+            int right = (b.x+b.w/2.)*im.w;
+            int top   = (b.y-b.h/2.)*im.h;
+            int bot   = (b.y+b.h/2.)*im.h;
+
+            if(left < 0) left = 0;
+            if(right > im.w-1) right = im.w-1;
+            if(top < 0) top = 0;
+            if(bot > im.h-1) bot = im.h-1;
+
+            draw_box_width(im, left, top, right, bot, width, red, green, blue);
+            if (labels) draw_label(im, top + width, left, labels[class], rgb);
+        }
+    }
+}
+
 
 void flip_image(image a)
 {
@@ -201,7 +259,7 @@ void rgbgr_image(image im)
 }
 
 #ifdef OPENCV
-void show_image_cv(image p, char *name)
+void show_image_cv(image p, const char *name)
 {
     int x,y,k;
     image copy = copy_image(p);
@@ -215,7 +273,7 @@ void show_image_cv(image p, char *name)
 
     IplImage *disp = cvCreateImage(cvSize(p.w,p.h), IPL_DEPTH_8U, p.c);
     int step = disp->widthStep;
-    cvNamedWindow(buff, CV_WINDOW_AUTOSIZE); 
+    cvNamedWindow(buff, CV_WINDOW_NORMAL); 
     //cvMoveWindow(buff, 100*(windows%10) + 200*(windows/10), 100*(windows%10));
     ++windows;
     for(y = 0; y < p.h; ++y){
@@ -244,7 +302,7 @@ void show_image_cv(image p, char *name)
 }
 #endif
 
-void show_image(image p, char *name)
+void show_image(image p, const char *name)
 {
 #ifdef OPENCV
     show_image_cv(p, name);
@@ -254,7 +312,7 @@ void show_image(image p, char *name)
 #endif
 }
 
-void save_image(image im, char *name)
+void save_image(image im, const char *name)
 {
     char buff[256];
     //sprintf(buff, "%s (%d)", name, windows);
@@ -329,6 +387,17 @@ image make_image(int w, int h, int c)
 {
     image out = make_empty_image(w,h,c);
     out.data = calloc(h*w*c, sizeof(float));
+    return out;
+}
+
+image make_random_image(int w, int h, int c)
+{
+    image out = make_empty_image(w,h,c);
+    out.data = calloc(h*w*c, sizeof(float));
+    int i;
+    for(i = 0; i < w*h*c; ++i){
+        out.data[i] = (rand_normal() * .25) + .5;
+    }
     return out;
 }
 
@@ -634,9 +703,13 @@ image resize_image(image im, int w, int h)
     return resized;
 }
 
+#include "cuda.h"
+
 void test_resize(char *filename)
 {
     image im = load_image(filename, 0,0, 3);
+    float mag = mag_array(im.data, im.w*im.h*im.c);
+    printf("L2 Norm: %f\n", mag);
     image gray = grayscale_image(im);
 
     image sat2 = copy_image(im);
@@ -650,6 +723,25 @@ void test_resize(char *filename)
 
     image exp5 = copy_image(im);
     exposure_image(exp5, .5);
+
+    #ifdef GPU
+    image r = resize_image(im, im.w, im.h);
+    image black = make_image(im.w*2 + 3, im.h*2 + 3, 9);
+    image black2 = make_image(im.w, im.h, 3);
+
+    float *r_gpu = cuda_make_array(r.data, r.w*r.h*r.c);
+    float *black_gpu = cuda_make_array(black.data, black.w*black.h*black.c);
+    float *black2_gpu = cuda_make_array(black2.data, black2.w*black2.h*black2.c);
+    shortcut_gpu(3, r.w, r.h, 1, r_gpu, black.w, black.h, 3, black_gpu);
+    //flip_image(r);
+    //shortcut_gpu(3, r.w, r.h, 1, r.data, black.w, black.h, 3, black.data);
+
+    shortcut_gpu(3, black.w, black.h, 3, black_gpu, black2.w, black2.h, 1, black2_gpu);
+    cuda_pull_array(black_gpu, black.data, black.w*black.h*black.c);
+    cuda_pull_array(black2_gpu, black2.data, black2.w*black2.h*black2.c);
+    show_image_layers(black, "Black");
+    show_image(black2, "Recreate");
+    #endif
 
     show_image(im, "Original");
     show_image(gray, "Gray");
@@ -696,7 +788,7 @@ image load_image_cv(char *filename, int channels)
 
     if( (src = cvLoadImage(filename, flag)) == 0 )
     {
-        printf("Cannot load file image %s\n", filename);
+        printf("Cannot load image \"%s\"\n", filename);
         exit(0);
     }
     image out = ipl_to_image(src);
@@ -713,7 +805,7 @@ image load_image_stb(char *filename, int channels)
     int w, h, c;
     unsigned char *data = stbi_load(filename, &w, &h, &c, channels);
     if (!data) {
-        fprintf(stderr, "Cannot load file image %s\nSTB Reason: %s\n", filename, stbi_failure_reason());
+        fprintf(stderr, "Cannot load image \"%s\"\nSTB Reason: %s\n", filename, stbi_failure_reason());
         exit(0);
     }
     if(channels) c = channels;
