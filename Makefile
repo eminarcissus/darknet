@@ -2,7 +2,7 @@ GPU=1
 OPENCV=1
 DEBUG=0
 
-ARCH= --gpu-architecture=compute_20 --gpu-code=compute_20
+ARCH= --gpu-architecture=compute_30 --gpu-code=compute_30
 
 VPATH=./src/
 EXEC=darknet

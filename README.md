@@ -6,7 +6,7 @@ This repo is for the python interface of YOLO object detector.
 
 
 #Build
-To build, change (CMakeLists.txt:40) to your path, run
+To build, run
 ```bash
 mkdir build && cd build
 cmake ..

@@ -37,7 +37,7 @@ include_directories(SYSTEM ${PYTHON_INCLUDE_DIR})
 include_directories(SYSTEM ${OpenCV_INCLUDE_DIR})
 
 include_directories(src)
-set(SRC_DIR /set/path/pydarknet)
+set(SRC_DIR src)
 
 FILE(GLOB SRC_FILES ${SRC_DIR}/*.c)
 FILE(GLOB CU_SRC_FILES ${SRC_DIR}/*.cu)
