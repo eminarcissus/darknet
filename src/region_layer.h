@@ -1,8 +1,9 @@
 #ifndef REGION_LAYER_H
 #define REGION_LAYER_H
 
-#include "params.h"
+//#include "params.h"
 #include "layer.h"
+#include "network.h"
 
 typedef layer region_layer;
 
