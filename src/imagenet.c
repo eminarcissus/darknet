@@ -21,7 +21,7 @@ void train_imagenet(char *cfgfile, char *weightfile)
     printf("Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
     int imgs = 1024;
     char **labels = get_labels("data/inet.labels.list");
-    list *plist = get_paths("/data/imagenet/cls.train.list");
+    list *plist = get_paths("data/inet.train.list");
     char **paths = (char **)list_to_array(plist);
     printf("%d\n", plist->size);
     int N = plist->size;
@@ -48,12 +48,6 @@ void train_imagenet(char *cfgfile, char *weightfile)
         pthread_join(load_thread, 0);
         train = buffer;
 
-        /*
-        image im = float_to_image(256, 256, 3, train.X.vals[114]);
-        show_image(im, "training");
-        cvWaitKey(0);
-        */
-
         load_thread = load_data_in_thread(args);
         printf("Loaded: %lf seconds\n", sec(clock()-time));
         time=clock();
@@ -66,6 +60,11 @@ void train_imagenet(char *cfgfile, char *weightfile)
             epoch = *net.seen/N;
             char buff[256];
             sprintf(buff, "%s/%s_%d.weights",backup_directory,base, epoch);
+            save_weights(net, buff);
+        }
+        if(*net.seen%1000 == 0){
+            char buff[256];
+            sprintf(buff, "%s/%s.backup",backup_directory,base);
             save_weights(net, buff);
         }
     }
@@ -92,6 +91,7 @@ void validate_imagenet(char *filename, char *weightfile)
     srand(time(0));
 
     char **labels = get_labels("data/inet.labels.list");
+    //list *plist = get_paths("data/inet.suppress.list");
     list *plist = get_paths("data/inet.val.list");
 
     char **paths = (char **)list_to_array(plist);
@@ -133,7 +133,7 @@ void validate_imagenet(char *filename, char *weightfile)
         printf("Loaded: %d images in %lf seconds\n", val.X.rows, sec(clock()-time));
 
         time=clock();
-        float *acc = network_accuracies(net, val);
+        float *acc = network_accuracies(net, val, 5);
         avg_acc += acc[0];
         avg_top5 += acc[1];
         printf("%d: top1: %f, top5: %f, %lf seconds, %d images\n", i, avg_acc/i, avg_top5/i, sec(clock()-time), val.X.rows);

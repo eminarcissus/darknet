@@ -6,7 +6,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/pyDarknet)
 
 ## Compiler settings
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--export-dynamic -Wall -Wno-sign-compare -fPIC")
 
 #thread
 FIND_PACKAGE(Threads)
@@ -28,11 +28,13 @@ else()
 endif()
 
 #BOOST
-set(BOOST_ROOT /usr/)
 FIND_PACKAGE(Boost REQUIRED python)
 FIND_PACKAGE(PythonLibs REQUIRED)
+FIND_PACKAGE(OpenCV REQUIRED)
+
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 include_directories(SYSTEM ${PYTHON_INCLUDE_DIR})
+include_directories(SYSTEM ${OpenCV_INCLUDE_DIR})
 
 include_directories(src)
 set(SRC_DIR src)
@@ -42,18 +44,16 @@ FILE(GLOB CU_SRC_FILES ${SRC_DIR}/*.cu)
 LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/server.c")
 LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/old.c")
 LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/cpu_gemm.c")
-LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/darknet.c")
-
-message(STATUS "SOURCE FILES: " ${SRC_FILES})
-message(STATUS "Boost Libs: " ${Boost_LIBRARIES})
+#LIST(REMOVE_ITEM SRC_FILES "${PROJECT_SOURCE_DIR}/src/darknet.c")
 
 if (CUDA_FOUND)
+message(STATUS "CUDA FOUND")
 cuda_add_library(dnl SHARED ${SRC_FILES} ${CU_SRC_FILES})
-target_link_libraries(dnl ${LIBRARIES})
+target_link_libraries(dnl ${LIBRARIES} ${OpenCV_LIBS})
 cuda_add_executable(darknet ${SRC_DIR}/darknet.c)
-target_link_libraries(darknet ${LIBRARIES} dnl)
-cuda_add_library(pydarknet SHARED  ${SRC_DIR}/pydarknet.cpp)
-target_link_libraries(pydarknet ${LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} dnl)
+target_link_libraries(darknet ${LIBRARIES} ${OpenCV_LIBS} dnl)
+cuda_add_library(pydarknet SHARED ${SRC_DIR}/pydarknet.cpp)
+target_link_libraries(pydarknet dnl ${LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${OpenCV_LIBS} )
 else ()
 add_library(dnl SHARED ${SRC_FILES} ${CU_SRC_FILES})
 target_link_libraries(dnl ${LIBRARIES})

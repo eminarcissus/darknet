@@ -20,13 +20,14 @@ static inline float distance_from_edge(int x, int max)
 }
 
 typedef struct{
+    int w, h;
     matrix X;
     matrix y;
     int shallow;
 } data;
 
 typedef enum {
-    CLASSIFICATION_DATA, DETECTION_DATA, CAPTCHA_DATA, REGION_DATA, IMAGE_DATA, COMPARE_DATA, WRITING_DATA
+    CLASSIFICATION_DATA, DETECTION_DATA, CAPTCHA_DATA, REGION_DATA, IMAGE_DATA, COMPARE_DATA, WRITING_DATA, SWAG_DATA
 } data_type;
 
 typedef struct load_args{
@@ -44,6 +45,7 @@ typedef struct load_args{
     int num_boxes;
     int classes;
     int background;
+    float jitter;
     data *d;
     image *im;
     image *resized;
