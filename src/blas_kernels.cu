@@ -175,7 +175,7 @@ __global__ void variance_kernel(float *x, float *mean, int batch, int filters, i
     for(j = 0; j < batch; ++j){
         for(k = 0; k < spatial; ++k){
             int index = j*filters*spatial + i*spatial + k;
-            variance[i] += pow((x[index] - mean[i]), 2);
+            variance[i] += pow((x[index] - mean[i]), float(2));
         }
     }
     variance[i] *= scale;
@@ -279,7 +279,7 @@ __global__ void  fast_variance_kernel(float *x, float *mean, int batch, int filt
         for(i = 0; i < spatial; i += threads){
             int index = j*spatial*filters + filter*spatial + i + id;
 
-            local[id] += (i+id < spatial) ? pow((x[index] - mean[filter]), 2) : 0;
+            local[id] += (i+id < spatial) ? pow((x[index] - mean[filter]), float(2)) : 0;
         }
     }
 
